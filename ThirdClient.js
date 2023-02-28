@@ -1,9 +1,9 @@
-import fetch from "isomorphic-unfetch";
 import retry from "async-retry";
 import axios from "axios";
 import { SiweMessage } from "siwe";
+import wagmi from "./wagmi";
 
-export class ThirdClient {
+export class ThirdStorageClient {
   serverUrl;
   encryptionAuthSig;
   litNodeClient;
@@ -14,12 +14,17 @@ export class ThirdClient {
   database;
   ipfs;
   ipns;
-
+  wagmi;
+  isConnected = false;
+  connectedAddress = "";
+  isInitialized = false;
   /**
    * Initialize a new SDK Instance
    * @param serverUrl
+   * @param isConnected
+   * @param connectedAddress
    */
-  constructor(serverUrl) {
+  constructor(serverUrl, isConnected = false, connectedAddress = "") {
     this.serverUrl = serverUrl;
     axios.defaults.baseURL = serverUrl;
     axios.defaults.withCredentials = true;
@@ -31,8 +36,22 @@ export class ThirdClient {
     this.database = new DatabaseClass(this);
     this.ipfs = new IPFSClass(this);
     this.ipns = new IPNSClass(this);
+    this.wagmi = wagmi;
+    this.isConnected = isConnected;
+    this.connectedAddress = connectedAddress;
+    // this._initEncryption();
+  }
 
-    this._initEncryption();
+  async initialize() {
+    const res = await this.signedInWallet();
+    if (res) {
+      this.isConnected = true;
+      this.connectedAddress = res;
+    }
+
+    // this._initEncryption();
+
+    this.isInitialized = true;
   }
 
   /**
@@ -469,5 +488,3 @@ class IPNSClass {
     );
   }
 }
-
-export default ThirdClient;
